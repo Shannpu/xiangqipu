@@ -1,11 +1,11 @@
 /* Service Worker：全量离线缓存 */
-var CACHE = 'xqp-v6';
+var CACHE = 'xqp-v8';
 var ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './js/board.js?v=6',
-  './js/app.js?v=9',
+  './js/board.js?v=11',
+  './js/app.js?v=11',
   './puzzles/puzzles.json',
   './lib/jquery.min.js',
   './lib/xiangqi.min.js',

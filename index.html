@@ -5,12 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>象棋杀棋练习</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#8b3a2e">
+<meta name="theme-color" content="#5b3f22">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
-  :root { --red:#8b3a2e; --bg:#f5f1e8; --panel:#fffdf8;
-          --safe-t: env(safe-area-inset-top, 0px);
-          --safe-b: env(safe-area-inset-bottom, 0px); }
+  :root {
+    /* 与棋盘同源的木色系 */
+    --wood-900:#4a3521;   /* 最深：主文字 */
+    --wood-800:#5f4526;   /* 深：标题栏 */
+    --wood-700:#7a5a32;   /* 中深：边框/次要文字 */
+    --wood-500:#a87c4a;   /* 中：辅助线、按钮边 */
+    --wood-300:#d8b788;   /* 浅：分隔 */
+    --wood-100:#efe0c6;   /* 更浅：卡片底 */
+    --paper:#f7ecd8;      /* 页面底色（与棋盘木色同调） */
+    --panel:#fdf7ea;      /* 面板白（暖白） */
+    --accent:#b5651d;     /* 主行动色：陶土棕 */
+    --accent-dark:#96501a;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body {
     margin:0; padding:0;
@@ -19,46 +31,46 @@
     overscroll-behavior:none;     /* 禁掉下拉刷新/滚动链 */
     -webkit-overflow-scrolling:auto;
   }
-  body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:#3a3230;
+  body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--paper); color:var(--wood-900);
          display:flex; flex-direction:column;
          padding-top:var(--safe-t); padding-bottom:var(--safe-b);
          -webkit-user-select:none; user-select:none;
          touch-action:manipulation; }   /* 禁止双击缩放，保留点击 */
-  header { background:var(--red); color:#fff; padding:10px 14px; display:flex; align-items:center; justify-content:space-between;
-           flex-shrink:0; position:relative; z-index:10; }
-  header h1 { font-size:17px; margin:0; font-weight:600; }
-  header .solved { font-size:13px; opacity:.9; }
+  header { background:linear-gradient(180deg,#6a4a29,#5b3f22); color:#f7e9cf; padding:10px 14px; display:flex; align-items:center; justify-content:space-between;
+           flex-shrink:0; position:relative; z-index:10; box-shadow:0 1px 4px rgba(74,53,33,.25); }
+  header h1 { font-size:17px; margin:0; font-weight:600; letter-spacing:.5px; }
+  header .solved { font-size:13px; opacity:.92; color:#e9cfa3; }
   .cats { display:flex; gap:8px; padding:10px 12px 0; overflow-x:auto; flex-shrink:0;
           scrollbar-width:none; touch-action:pan-x; }   /* 只允许横向滑动 */
   .cats::-webkit-scrollbar { display:none; }
-  .cat { flex-shrink:0; padding:7px 14px; border-radius:18px; background:#e7dfd2; font-size:14px; border:none; color:#5a4f48; }
-  .cat.active { background:var(--red); color:#fff; }
+  .cat { flex-shrink:0; padding:7px 14px; border-radius:18px; background:#eadbc0; font-size:14px; border:1px solid #dcc9a5; color:#6b5233; }
+  .cat.active { background:linear-gradient(180deg,#8a6234,#75512a); color:#f8ecd6; border-color:#75512a; }
   .main { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
           overscroll-behavior:contain;   /* 内部滚动不外溢 */
           padding:10px 12px calc(20px + var(--safe-b)); max-width:520px; margin:0 auto; width:100%; }
   #boardWrap { width:100%; max-width:500px; margin:0 auto; touch-action:none; }  /* 棋盘区禁止滚动 */
   #board { width:100%; touch-action:none; }
   .toolbar { display:flex; gap:8px; margin-top:12px; }
-  .toolbar button { flex:1; padding:11px 0; font-size:15px; border:none; border-radius:10px; background:#fff; color:#5a4f48; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .toolbar button.primary { background:var(--red); color:#fff; }
-  .status { text-align:center; margin-top:10px; font-size:14px; min-height:20px; color:#6b5d55; }
-  .navrow { display:flex; align-items:center; justify-content:space-between; margin-top:14px; background:var(--panel); border-radius:12px; padding:10px 14px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-  .navrow .title { font-size:15px; font-weight:600; }
-  .navrow .idx { font-size:13px; color:#9a8c82; }
+  .toolbar button { flex:1; padding:11px 0; font-size:15px; border:1px solid #ddc9a4; border-radius:10px; background:var(--panel); color:#6b5233; box-shadow:0 1px 3px rgba(90,64,41,.10); }
+  .toolbar button.primary { background:linear-gradient(180deg,#b5651d,#9c5316); border-color:#8e4c14; color:#fff6e8; }
+  .status { text-align:center; margin-top:10px; font-size:14px; min-height:20px; color:#7a5a34; }
+  .navrow { display:flex; align-items:center; justify-content:space-between; margin-top:14px; background:var(--panel); border:1px solid #e6d5b6; border-radius:12px; padding:10px 14px; box-shadow:0 1px 3px rgba(90,64,41,.08); }
+  .navrow .title { font-size:15px; font-weight:600; color:#5f4526; }
+  .navrow .idx { font-size:13px; color:#9c8460; }
   .navrow .jump { display:flex; gap:6px; }
-  .navrow .jump button { padding:8px 14px; border:none; border-radius:8px; background:#efe8db; font-size:14px; color:#5a4f48; }
+  .navrow .jump button { padding:8px 14px; border:1px solid #ddc9a4; border-radius:8px; background:#f3e7cf; font-size:14px; color:#6b5233; }
   .numrow { display:flex; gap:6px; margin-top:10px; align-items:center; }
-  .numrow input { width:90px; padding:8px; border:1px solid #d8cfc0; border-radius:8px; font-size:14px; background:#fff; }
-  .numrow button { padding:8px 14px; border:none; border-radius:8px; background:#efe8db; font-size:14px; }
+  .numrow input { width:90px; padding:8px; border:1px solid #ddc9a4; border-radius:8px; font-size:14px; background:var(--panel); color:#5f4526; }
+  .numrow button { padding:8px 14px; border:1px solid #ddc9a4; border-radius:8px; background:#f3e7cf; font-size:14px; color:#6b5233; }
   /* 结算弹层 */
-  #overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:50; touch-action:none; }
+  #overlay { position:fixed; inset:0; background:rgba(58,40,24,.62); display:none; align-items:center; justify-content:center; z-index:50; touch-action:none; }
   #overlay.show { display:flex; }
-  .card { background:var(--panel); border-radius:16px; padding:28px 30px; text-align:center; max-width:300px; width:80%; }
-  .card h2 { margin:0 0 8px; font-size:22px; }
-  .card p { margin:0 0 18px; font-size:14px; color:#6b5d55; }
-  .card button { width:100%; padding:11px 0; margin-top:8px; border:none; border-radius:10px; font-size:15px; }
-  .card .again { background:#efe8db; color:#5a4f48; }
-  .card .next { background:var(--red); color:#fff; }
+  .card { background:var(--panel); border:1px solid #e2cfa9; border-radius:16px; padding:28px 30px; text-align:center; max-width:300px; width:80%; box-shadow:0 8px 28px rgba(58,40,24,.28); }
+  .card h2 { margin:0 0 8px; font-size:22px; color:#5f4526; }
+  .card p { margin:0 0 18px; font-size:14px; color:#7a5a34; }
+  .card button { width:100%; padding:11px 0; margin-top:8px; border-radius:10px; font-size:15px; border:1px solid #ddc9a4; }
+  .card .again { background:#f3e7cf; color:#6b5233; }
+  .card .next { background:linear-gradient(180deg,#b5651d,#9c5316); border-color:#8e4c14; color:#fff6e8; }
   .spin { display:none; position:fixed; left:50%; bottom:100px; transform:translateX(-50%); background:rgba(0,0,0,.6); color:#fff; padding:6px 14px; border-radius:14px; font-size:13px; z-index:40; }
   /* 点击走子的选中标记 */
   /* ===== 自绘棋盘样式 ===== */
@@ -73,9 +85,21 @@
     filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));
   }
   .xq-piece.sel { transform:scale(1.08); filter:drop-shadow(0 0 6px rgba(255,193,7,.95)) drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
-  .xq-last { position:absolute; border-radius:50%; background:rgba(255,214,102,.42); }
+  /* 上一手：起点小橙点，落点橙色圆环套住棋子 */
+  .xq-marks { z-index:3; }
+  .xq-last-from {
+    position:absolute; border-radius:50%;
+    background:#ef5b23;
+    box-shadow:0 0 0 2px rgba(255,255,255,.5), 0 1px 3px rgba(120,40,10,.4);
+  }
+  .xq-last-to {
+    position:absolute; border-radius:50%;
+    border:3px solid #ef5b23;
+    box-shadow:0 0 0 1px rgba(255,255,255,.35), 0 0 8px rgba(239,91,35,.45);
+    background:transparent;
+  }
   .xq-dot { position:absolute; border-radius:50%; background:rgba(30,120,60,.72); box-shadow:0 0 0 2px rgba(255,255,255,.55); }
-  .xq-check { position:absolute; border-radius:50%; box-shadow:0 0 0 3px rgba(220,40,40,.9), 0 0 12px rgba(220,40,40,.7); animation:xqPulse 1s infinite; }
+  .xq-check { position:absolute; border-radius:50%; box-shadow:0 0 0 3px rgba(200,40,40,.92), 0 0 14px rgba(200,40,40,.72); animation:xqPulse 1s infinite; }
   @keyframes xqPulse { 0%,100% { opacity:1 } 50% { opacity:.45 } }
 </style>
 </head>
@@ -132,7 +156,7 @@
 <script src="engine/position.js"></script>
 <script src="engine/search.js"></script>
 <script src="engine/book.js"></script>
-<script src="js/board.js?v=6"></script>
-<script src="js/app.js?v=9"></script>
+<script src="js/board.js?v=11"></script>
+<script src="js/app.js?v=11"></script>
 </body>
 </html>

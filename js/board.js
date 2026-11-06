@@ -61,11 +61,11 @@
   XiangqiBoard.prototype.resize = function (size) {
     var w = size || this.el.clientWidth || 320;
     // 棋盘比例：9 列 8 格宽 + 边距，10 行 9 格高 + 边距
-    var cell = Math.floor((w - 2 * 18) / 8);
-    var boardW = cell * 8 + 36;
-    var boardH = cell * 9 + 36;
+    var cell = Math.floor((w - 2 * 20) / 8);
+    var boardW = cell * 8 + 40;
+    var boardH = cell * 9 + 40;
     this.cell = cell;
-    this.pad = 18;
+    this.pad = 20;
     this.boardW = boardW;
     this.boardH = boardH;
     this.inner.style.width = boardW + 'px';
@@ -86,11 +86,33 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
-    // 底板（木色）
+    // 底板（木色 + 细腻纹理）
     var g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, '#e8c88f');
-    g.addColorStop(1, '#dcb672');
+    g.addColorStop(0, '#ecd0a1');
+    g.addColorStop(0.5, '#e3c088');
+    g.addColorStop(1, '#d9b477');
     ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    // 木纹：随机的浅色细纹
+    ctx.save();
+    ctx.globalAlpha = 0.06;
+    ctx.strokeStyle = '#7a5a34';
+    ctx.lineWidth = 1;
+    var seed = 7;
+    function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    for (var i = 0; i < 26; i++) {
+      var wy = rnd() * H;
+      ctx.beginPath();
+      ctx.moveTo(0, wy);
+      ctx.bezierCurveTo(W * 0.3, wy + (rnd() - 0.5) * 14, W * 0.7, wy + (rnd() - 0.5) * 14, W, wy + (rnd() - 0.5) * 8);
+      ctx.stroke();
+    }
+    ctx.restore();
+    // 四周暗角，增加质感
+    var vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(60,35,10,.18)');
+    ctx.fillStyle = vg;
     ctx.fillRect(0, 0, W, H);
 
     ctx.strokeStyle = '#5a4029';
@@ -121,13 +143,15 @@
       }
       ctx.stroke();
     }
-    // 外框加粗
+    // 外框：粗外框 + 细内框（经典双线）
+    ctx.lineWidth = 3;
+    ctx.strokeRect(pad - 4, pad - 4, cell * 8 + 8, cell * 9 + 8);
     ctx.lineWidth = 2.2;
     ctx.strokeRect(pad, pad, cell * 8, cell * 9);
 
-    // 九宫斜线
+    // 九宫斜线：只有黑方（顶部 d-f 列）和红方（底部 d-f 列）两个宫
     ctx.lineWidth = 1.2;
-    [[3, 0], [6, 0], [3, 7], [6, 7]].forEach(function (p) {
+    [[3, 0], [3, 7]].forEach(function (p) {
       var x0 = pad + p[0] * cell, y0 = pad + p[1] * cell;
       ctx.beginPath();
       ctx.moveTo(x0, y0);
@@ -137,13 +161,13 @@
       ctx.stroke();
     });
 
-    // 炮/兵位的"十"字标记
+    // 炮/兵位的"十"字标记（标准画法：四个象限各一个直角折线）
     var marks = [
       [1, 2], [7, 2], [1, 7], [7, 7],          // 炮位
       [0, 3], [2, 3], [4, 3], [6, 3], [8, 3],  // 兵位
       [0, 6], [2, 6], [4, 6], [6, 6], [8, 6]   // 卒位
     ];
-    var d = cell * 0.13;
+    var gap = cell * 0.08, len = cell * 0.16;
     ctx.lineWidth = 1.2;
     marks.forEach(function (m) {
       var cx = pad + m[0] * cell, cy = pad + m[1] * cell;
@@ -151,24 +175,24 @@
       if (m[0] > 0) dirs.push([-1, -1], [-1, 1]);
       if (m[0] < 8) dirs.push([1, -1], [1, 1]);
       dirs.forEach(function (dir) {
-        var ox = cx + dir[0] * cell * 0.14, oy = cy + dir[1] * cell * 0.14;
+        var vx = cx + dir[0] * gap, vy = cy + dir[1] * gap;
         ctx.beginPath();
-        ctx.moveTo(ox, oy + dir[1] * d * 0);
-        ctx.lineTo(ox, oy + dir[1] * d);
-        ctx.moveTo(ox, oy);
-        ctx.lineTo(ox + dir[0] * d * 0.9, oy);
+        // 竖边 + 横边组成直角，开口朝向交点
+        ctx.moveTo(vx, vy + dir[1] * len);
+        ctx.lineTo(vx, vy);
+        ctx.lineTo(vx + dir[0] * len, vy);
         ctx.stroke();
       });
     });
 
-    // 楚河汉界
-    ctx.fillStyle = 'rgba(90,64,41,.72)';
-    ctx.font = '600 ' + Math.round(cell * 0.42) + 'px "KaiTi","STKaiti",serif';
+    // 楚河汉界：都按页面正常方向书写
+    ctx.fillStyle = 'rgba(90,64,41,.78)';
+    ctx.font = '600 ' + Math.round(cell * 0.46) + 'px "KaiTi","STKaiti","Songti SC",serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     var my = pad + cell * 4.5;
-    ctx.fillText('楚 河', pad + cell * 2, my);
-    ctx.fillText('漢 界', pad + cell * 6, my);
+    ctx.fillText('楚  河', pad + cell * 1.9, my);
+    ctx.fillText('漢  界', pad + cell * 6.1, my);
   };
 
   // 格子名 -> 像素中心
@@ -227,19 +251,28 @@
     marks.style.width = this.boardW + 'px';
     marks.style.height = this.boardH + 'px';
 
-    // 上一手：起止格淡黄底
+    // 上一手：起点小橙点，落点橙色圆环套住棋子（参考经典象棋 App 的走子提示）
     if (this.lastMove) {
-      [this.lastMove.from, this.lastMove.to].forEach(function (sq) {
-        if (!sq) return;
-        var p = self.xy(sq), r = cell * 0.44;
-        var m = document.createElement('div');
-        m.className = 'xq-last';
-        m.style.left = (p.x - r) + 'px';
-        m.style.top = (p.y - r) + 'px';
-        m.style.width = (r * 2) + 'px';
-        m.style.height = (r * 2) + 'px';
-        marks.appendChild(m);
-      });
+      if (this.lastMove.from) {
+        var fp = this.xy(this.lastMove.from), fr = cell * 0.115;
+        var fd = document.createElement('div');
+        fd.className = 'xq-last-from';
+        fd.style.left = (fp.x - fr) + 'px';
+        fd.style.top = (fp.y - fr) + 'px';
+        fd.style.width = (fr * 2) + 'px';
+        fd.style.height = (fr * 2) + 'px';
+        marks.appendChild(fd);
+      }
+      if (this.lastMove.to) {
+        var tp = this.xy(this.lastMove.to), tr = cell * 0.475;
+        var td = document.createElement('div');
+        td.className = 'xq-last-to';
+        td.style.left = (tp.x - tr) + 'px';
+        td.style.top = (tp.y - tr) + 'px';
+        td.style.width = (tr * 2) + 'px';
+        td.style.height = (tr * 2) + 'px';
+        marks.appendChild(td);
+      }
     }
 
     // 可落点

@@ -11,6 +11,7 @@
   var thinking = false;
   var finished = false;
   var startPos = null;
+  var lastWin = false;
 
   var $status = $('#status');
 
@@ -112,6 +113,7 @@
   function gameOver(win, reason) {
     finished = true;
     thinking = false;
+    lastWin = !!win;
     $status.text(win ? '解出！' : '未能解出');
     if (win) addSolved(CATS[curCat]);
     board.setSelected(null, []);
@@ -239,10 +241,11 @@
   /* ---------- 按钮 ---------- */
   $('#btnRetry').on('click', function () { loadPuzzle(curCat, curIdx); });
   $('#ovAgain').on('click', function () {
-    // 失败时「再看看这局」：只关弹层，保留当前局面
-    if ($('#ovTitle').text().indexOf('解出') === -1) {
+    // 失败时「再看看这局」：只关弹层，保留当前局面，方便复盘
+    if (!lastWin) {
       $('#overlay').removeClass('show');
-      $status.text('可以继续看，或直接点下一题');
+      finished = false;                    // 允许继续点着看/悔棋
+      $status.text('可以复盘：悔棋或直接换下一题');
       return;
     }
     loadPuzzle(curCat, curIdx);
