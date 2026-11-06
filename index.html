@@ -43,6 +43,11 @@
   .card .again { background:#efe8db; color:#5a4f48; }
   .card .next { background:var(--red); color:#fff; }
   .spin { display:none; position:fixed; left:50%; bottom:100px; transform:translateX(-50%); background:rgba(0,0,0,.6); color:#fff; padding:6px 14px; border-radius:14px; font-size:13px; z-index:40; }
+  /* 点击走子的选中标记 */
+  [data-square] { position:relative; }
+  .xq-sel { position:absolute; inset:6%; border:3px solid #d4a03c; border-radius:6px; pointer-events:none; box-shadow:0 0 0 2px rgba(212,160,60,.35) inset; }
+  .xq-dot { position:absolute; left:50%; top:50%; width:22%; height:22%; margin:-11% 0 0 -11%;
+            background:rgba(139,58,46,.55); border:2px solid rgba(139,58,46,.85); border-radius:50%; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -99,6 +104,6 @@
 <script src="engine/position.js"></script>
 <script src="engine/search.js"></script>
 <script src="engine/book.js"></script>
-<script src="js/app.js"></script>
+<script src="js/app.js?v=3"></script>
 </body>
 </html>

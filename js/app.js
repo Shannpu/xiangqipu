@@ -60,9 +60,10 @@
     $('#puzIdx').text('第 ' + (idx + 1) + ' / ' + PUZZLES[CATS[cat]].length + ' 题');
     game = new Xiangqi();
     var ok = game.load(fenForRules());
-    if (!ok) console.error('[dbg] 题目 FEN 加载失败:', fenForRules());
+    if (!ok) console.error('题目 FEN 加载失败:', fenForRules());
     board.orientation('red');
     board.position(startPos, false);
+    clearSelection();            // 必须放在 position() 之后，否则标记会被重绘冲掉
     $status.text('轮到你走（红方）');
     $('#jumpNum').val(idx + 1);
   }
@@ -121,21 +122,96 @@
   }
 
   /* ---------- 棋盘 ---------- */
+  var selected = null;    // 当前选中的格子
+  var justDragged = false;
+
+  // 自绘标记：选中环 + 可落点圆点（不依赖棋盘库的 highlight API）
+  function clearSelection() {
+    selected = null;
+    $('#board .xq-sel, #board .xq-dot').remove();
+    $('#board [data-square]').removeClass('xq-sel-sq');
+  }
+
+  function markSquare(sq) {
+    var $sq = $('#board [data-square="' + sq + '"]');
+    if (!$sq.length) return;
+    $sq.addClass('xq-sel-sq');
+    $('<div class="xq-sel"></div>').appendTo($sq);
+  }
+
+  function markDots(squares) {
+    squares.forEach(function (s) {
+      var $sq = $('#board [data-square="' + s + '"]');
+      if ($sq.length) $('<div class="xq-dot"></div>').appendTo($sq);
+    });
+  }
+
+  // 显示某格红子的所有合法落点，返回落点数组
+  function showMoves(sq) {
+    var moves = game.moves({ square: sq, verbose: true }) || [];
+    var list = moves.map(function (m) { return m.to; });
+    markDots(list);
+    return list;
+  }
+
+  function selectSquare(sq) {
+    selected = sq;
+    markSquare(sq);
+    var list = showMoves(sq);
+    $status.text(list.length ? '选择目标位置' : '这枚棋子无处可走');
+  }
+
+  // 点击走子：第一下选红子，第二下落子
+  function handleSquareClick(sq) {
+    if (finished || thinking) return;
+    if (!sq || sq === 'offboard') return;
+    if (game.turn() !== 'r') return;
+
+    var piece = game.get(sq);
+
+    if (selected) {
+      if (sq === selected) {                 // 点同一格：取消
+        clearSelection();
+        $status.text('轮到你走（红方）');
+        return;
+      }
+      if (piece && piece.color === 'r') {    // 点另一个红子：改选
+        clearSelection();
+        selectSquare(sq);
+        return;
+      }
+      var mv = game.move({ from: selected, to: sq });
+      if (mv) {
+        clearSelection();
+        $status.text('…');
+        afterRedMove();
+      } else {
+        $status.text('这步走不了');
+      }
+      return;
+    }
+
+    if (!piece || piece.color !== 'r') return;
+    selectSquare(sq);
+  }
+
   function initBoard() {
-    var w = Math.min($('#boardWrap').width() || 360, 500);
     board = Xiangqiboard('board', {
-      draggable: true,
+      draggable: true,                       // 拖拽与点击两种方式都支持
       position: 'start',
       orientation: 'red',
       pieceTheme: 'lib/pieces/{piece}.svg',
       moveSpeed: 180, snapbackSpeed: 80, snapSpeed: 60,
       onDragStart: function (source, piece) {
+        justDragged = true;
         if (finished || thinking) return false;
-        if (!piece || piece[0] !== 'r') return false;   // 只能拿红子
+        if (!piece || piece[0] !== 'r') return false;
         if (game.turn() !== 'r') return false;
+        clearSelection();
         return true;
       },
       onDrop: function (source, target) {
+        justDragged = true;
         if (source === target || target === 'offboard') return 'snapback';
         var mv = game.move({ from: source, to: target });
         if (!mv) return 'snapback';
@@ -144,8 +220,37 @@
       },
       onSnapEnd: function () { board.position(game.fen()); }
     });
+
+    // 点击走子：mousedown 时记录格子，mouseup 时若几乎没移动就视为点击
+    // （棋盘库的拖拽会改 DOM，click 事件的 target 会变成 BODY，所以不能用 click）
+    var downSquare = null, downX = 0, downY = 0, downAt = 0;
+
+    function onDown(ev) {
+      var t = (ev.touches && ev.touches[0]) || ev;
+      var el = document.elementFromPoint(t.clientX, t.clientY);
+      var sqEl = el && el.closest ? el.closest('[data-square]') : null;
+      if (!sqEl) { downSquare = null; return; }
+      downSquare = sqEl.getAttribute('data-square');
+      downX = t.clientX; downY = t.clientY; downAt = Date.now();
+    }
+
+    function onUp(ev) {
+      if (!downSquare) return;
+      var sq = downSquare;
+      downSquare = null;
+      var t = (ev.changedTouches && ev.changedTouches[0]) || ev;
+      var moved = Math.abs(t.clientX - downX) + Math.abs(t.clientY - downY);
+      if (moved > 8) return;                       // 发生了拖拽，交给 onDrop
+      if (Date.now() - downAt > 800) return;       // 长按
+      handleSquareClick(sq);
+    }
+
+    document.addEventListener('mousedown', onDown, true);
+    document.addEventListener('touchstart', onDown, true);
+    document.addEventListener('mouseup', onUp, true);
+    document.addEventListener('touchend', onUp, true);
+
     $(window).on('resize', function () {
-      var nw = Math.min($('#boardWrap').width() || 360, 500);
       try { board.resize(); } catch (e) {}
     });
   }
