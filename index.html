@@ -2,25 +2,42 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>象棋杀棋练习</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#8b3a2e">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="lib/xiangqiboard.min.css">
 <style>
-  :root { --red:#8b3a2e; --bg:#f5f1e8; --panel:#fffdf8; }
+  :root { --red:#8b3a2e; --bg:#f5f1e8; --panel:#fffdf8;
+          --safe-t: env(safe-area-inset-top, 0px);
+          --safe-b: env(safe-area-inset-bottom, 0px); }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  body { margin:0; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:#3a3230; }
-  header { background:var(--red); color:#fff; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; }
+  html, body {
+    margin:0; padding:0;
+    height:100%;
+    overflow:hidden;              /* 整页不滚动，避免上下乱窜 */
+    overscroll-behavior:none;     /* 禁掉下拉刷新/滚动链 */
+    -webkit-overflow-scrolling:auto;
+  }
+  body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:#3a3230;
+         display:flex; flex-direction:column;
+         padding-top:var(--safe-t); padding-bottom:var(--safe-b);
+         -webkit-user-select:none; user-select:none;
+         touch-action:manipulation; }   /* 禁止双击缩放，保留点击 */
+  header { background:var(--red); color:#fff; padding:10px 14px; display:flex; align-items:center; justify-content:space-between;
+           flex-shrink:0; position:relative; z-index:10; }
   header h1 { font-size:17px; margin:0; font-weight:600; }
   header .solved { font-size:13px; opacity:.9; }
-  .cats { display:flex; gap:8px; padding:10px 12px 0; overflow-x:auto; }
+  .cats { display:flex; gap:8px; padding:10px 12px 0; overflow-x:auto; flex-shrink:0;
+          scrollbar-width:none; touch-action:pan-x; }   /* 只允许横向滑动 */
+  .cats::-webkit-scrollbar { display:none; }
   .cat { flex-shrink:0; padding:7px 14px; border-radius:18px; background:#e7dfd2; font-size:14px; border:none; color:#5a4f48; }
   .cat.active { background:var(--red); color:#fff; }
-  .main { padding:10px 12px 90px; max-width:520px; margin:0 auto; }
-  #boardWrap { width:100%; max-width:500px; margin:0 auto; }
-  #board { width:100%; }
+  .main { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+          overscroll-behavior:contain;   /* 内部滚动不外溢 */
+          padding:10px 12px calc(20px + var(--safe-b)); max-width:520px; margin:0 auto; width:100%; }
+  #boardWrap { width:100%; max-width:500px; margin:0 auto; touch-action:none; }  /* 棋盘区禁止滚动 */
+  #board { width:100%; touch-action:none; }
   .toolbar { display:flex; gap:8px; margin-top:12px; }
   .toolbar button { flex:1; padding:11px 0; font-size:15px; border:none; border-radius:10px; background:#fff; color:#5a4f48; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .toolbar button.primary { background:var(--red); color:#fff; }
@@ -34,7 +51,7 @@
   .numrow input { width:90px; padding:8px; border:1px solid #d8cfc0; border-radius:8px; font-size:14px; background:#fff; }
   .numrow button { padding:8px 14px; border:none; border-radius:8px; background:#efe8db; font-size:14px; }
   /* 结算弹层 */
-  #overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:50; }
+  #overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:50; touch-action:none; }
   #overlay.show { display:flex; }
   .card { background:var(--panel); border-radius:16px; padding:28px 30px; text-align:center; max-width:300px; width:80%; }
   .card h2 { margin:0 0 8px; font-size:22px; }
@@ -44,10 +61,22 @@
   .card .next { background:var(--red); color:#fff; }
   .spin { display:none; position:fixed; left:50%; bottom:100px; transform:translateX(-50%); background:rgba(0,0,0,.6); color:#fff; padding:6px 14px; border-radius:14px; font-size:13px; z-index:40; }
   /* 点击走子的选中标记 */
-  [data-square] { position:relative; }
-  .xq-sel { position:absolute; inset:6%; border:3px solid #d4a03c; border-radius:6px; pointer-events:none; box-shadow:0 0 0 2px rgba(212,160,60,.35) inset; }
-  .xq-dot { position:absolute; left:50%; top:50%; width:22%; height:22%; margin:-11% 0 0 -11%;
-            background:rgba(139,58,46,.55); border:2px solid rgba(139,58,46,.85); border-radius:50%; pointer-events:none; }
+  /* ===== 自绘棋盘样式 ===== */
+  .xq-board-root { width:100%; display:flex; justify-content:center; }
+  .xq-board-inner { position:relative; touch-action:manipulation; user-select:none; -webkit-user-select:none; }
+  .xq-canvas { display:block; border-radius:8px; box-shadow:0 3px 12px rgba(0,0,0,.18); }
+  .xq-pieces, .xq-marks { position:absolute; left:0; top:0; }
+  .xq-marks { pointer-events:none; }
+  .xq-piece {
+    position:absolute; background-size:100% 100%; background-repeat:no-repeat;
+    transition:left .16s ease, top .16s ease; will-change:left,top;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));
+  }
+  .xq-piece.sel { transform:scale(1.08); filter:drop-shadow(0 0 6px rgba(255,193,7,.95)) drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+  .xq-last { position:absolute; border-radius:50%; background:rgba(255,214,102,.42); }
+  .xq-dot { position:absolute; border-radius:50%; background:rgba(30,120,60,.72); box-shadow:0 0 0 2px rgba(255,255,255,.55); }
+  .xq-check { position:absolute; border-radius:50%; box-shadow:0 0 0 3px rgba(220,40,40,.9), 0 0 12px rgba(220,40,40,.7); animation:xqPulse 1s infinite; }
+  @keyframes xqPulse { 0%,100% { opacity:1 } 50% { opacity:.45 } }
 </style>
 </head>
 <body>
@@ -98,12 +127,12 @@
 <div class="spin" id="spin">黑方思考中…</div>
 
 <script src="lib/jquery.min.js"></script>
-<script src="lib/xiangqiboard.min.js"></script>
 <script src="lib/xiangqi.min.js"></script>
 <script src="engine/cchess.js"></script>
 <script src="engine/position.js"></script>
 <script src="engine/search.js"></script>
 <script src="engine/book.js"></script>
-<script src="js/app.js?v=3"></script>
+<script src="js/board.js?v=6"></script>
+<script src="js/app.js?v=9"></script>
 </body>
 </html>
