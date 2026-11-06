@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>象棋杀棋练习</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#8b3a2e">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="lib/xiangqiboard.min.css">
+<style>
+  :root { --red:#8b3a2e; --bg:#f5f1e8; --panel:#fffdf8; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:#3a3230; }
+  header { background:var(--red); color:#fff; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; }
+  header h1 { font-size:17px; margin:0; font-weight:600; }
+  header .solved { font-size:13px; opacity:.9; }
+  .cats { display:flex; gap:8px; padding:10px 12px 0; overflow-x:auto; }
+  .cat { flex-shrink:0; padding:7px 14px; border-radius:18px; background:#e7dfd2; font-size:14px; border:none; color:#5a4f48; }
+  .cat.active { background:var(--red); color:#fff; }
+  .main { padding:10px 12px 90px; max-width:520px; margin:0 auto; }
+  #boardWrap { width:100%; max-width:500px; margin:0 auto; }
+  #board { width:100%; }
+  .toolbar { display:flex; gap:8px; margin-top:12px; }
+  .toolbar button { flex:1; padding:11px 0; font-size:15px; border:none; border-radius:10px; background:#fff; color:#5a4f48; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .toolbar button.primary { background:var(--red); color:#fff; }
+  .status { text-align:center; margin-top:10px; font-size:14px; min-height:20px; color:#6b5d55; }
+  .navrow { display:flex; align-items:center; justify-content:space-between; margin-top:14px; background:var(--panel); border-radius:12px; padding:10px 14px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .navrow .title { font-size:15px; font-weight:600; }
+  .navrow .idx { font-size:13px; color:#9a8c82; }
+  .navrow .jump { display:flex; gap:6px; }
+  .navrow .jump button { padding:8px 14px; border:none; border-radius:8px; background:#efe8db; font-size:14px; color:#5a4f48; }
+  .numrow { display:flex; gap:6px; margin-top:10px; align-items:center; }
+  .numrow input { width:90px; padding:8px; border:1px solid #d8cfc0; border-radius:8px; font-size:14px; background:#fff; }
+  .numrow button { padding:8px 14px; border:none; border-radius:8px; background:#efe8db; font-size:14px; }
+  /* 结算弹层 */
+  #overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:50; }
+  #overlay.show { display:flex; }
+  .card { background:var(--panel); border-radius:16px; padding:28px 30px; text-align:center; max-width:300px; width:80%; }
+  .card h2 { margin:0 0 8px; font-size:22px; }
+  .card p { margin:0 0 18px; font-size:14px; color:#6b5d55; }
+  .card button { width:100%; padding:11px 0; margin-top:8px; border:none; border-radius:10px; font-size:15px; }
+  .card .again { background:#efe8db; color:#5a4f48; }
+  .card .next { background:var(--red); color:#fff; }
+  .spin { display:none; position:fixed; left:50%; bottom:100px; transform:translateX(-50%); background:rgba(0,0,0,.6); color:#fff; padding:6px 14px; border-radius:14px; font-size:13px; z-index:40; }
+</style>
+</head>
+<body>
+<header>
+  <h1>象棋杀棋练习</h1>
+  <div class="solved">已解 <span id="solvedCount">0</span> 题</div>
+</header>
+
+<div class="cats" id="cats"></div>
+
+<div class="main">
+  <div id="boardWrap"><div id="board"></div></div>
+
+  <div class="status" id="status">轮到你走（红方）</div>
+
+  <div class="toolbar">
+    <button id="btnRetry">重来</button>
+    <button id="btnUndo">悔棋</button>
+    <button id="btnNext" class="primary">换一题</button>
+  </div>
+
+  <div class="navrow">
+    <div>
+      <div class="title" id="catTitle"></div>
+      <div class="idx" id="puzIdx"></div>
+    </div>
+    <div class="jump">
+      <button id="btnPrev">上一题</button>
+      <button id="btnRandom">随机</button>
+    </div>
+  </div>
+
+  <div class="numrow">
+    <input id="jumpNum" type="number" min="1" placeholder="题号">
+    <button id="btnJump">跳到该题</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <h2 id="ovTitle"></h2>
+    <p id="ovText"></p>
+    <button class="again" id="ovAgain">再试一次</button>
+    <button class="next" id="ovNext">下一题</button>
+  </div>
+</div>
+
+<div class="spin" id="spin">黑方思考中…</div>
+
+<script src="lib/jquery.min.js"></script>
+<script src="lib/xiangqiboard.min.js"></script>
+<script src="lib/xiangqi.min.js"></script>
+<script src="engine/cchess.js"></script>
+<script src="engine/position.js"></script>
+<script src="engine/search.js"></script>
+<script src="engine/book.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
